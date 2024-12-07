@@ -1,0 +1,2 @@
+#!/bin/bash
+exec deno run --cached-only --lock /usr/local/firstboot/deno.lock -A /usr/local/firstboot/main.ts "$@"

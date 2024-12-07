@@ -1,0 +1,20 @@
+{
+  "tasks": {
+    "build": "mkdir -p ./dist && wsl -d docker -- sh -c 'sleep 1 && docker buildx b --sbom=true --provenance=true --output type=tar ./src | gzip >./dist/rootfs.tar.gz'",
+    "import": {
+      "command": "wsl --unregister fedora || true && wsl --import fedora C:/Users/BradJones/.wsl/fedora ./dist/rootfs.tar.gz",
+      "dependencies": ["build"]
+    },
+    "start": {
+      "command": "wsl -d fedora",
+      "dependencies": ["import"]
+    }
+  },
+  "imports": {
+    "@cspotcode/outdent": "jsr:@cspotcode/outdent@^0.8.0",
+    "@david/dax": "jsr:@david/dax@^0.42.0",
+    "dayjs": "npm:dayjs@^1.11.13",
+    "ky": "npm:ky@^1.7.2",
+    "zod": "npm:zod@^3.23.8"
+  }
+}

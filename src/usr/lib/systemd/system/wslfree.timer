@@ -1,0 +1,9 @@
+[Unit]
+Description = Timer to free WSL2 kernel caches
+
+[Timer]
+OnBootSec=1h
+OnUnitActiveSec=1h
+
+[Install]
+WantedBy = timers.target
