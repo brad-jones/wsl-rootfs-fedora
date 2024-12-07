@@ -51,9 +51,19 @@ const sbomSchema = z.object({
 });
 
 const filterPackages = (sbom: z.infer<typeof sbomSchema>) =>
-  sbom.predicate.packages
-    .filter((_) => typeof _.versionInfo === "string")
-    .map((_) => ({ name: _.name, version: _.versionInfo! }));
+  Object.entries(
+    sbom.predicate.packages
+      .filter((_) => typeof _.versionInfo === "string")
+      .map((_) => ({ name: _.name, version: _.versionInfo! }))
+      .reduce((prev, cur) => {
+        if (prev[cur.name]) {
+          prev[cur.name] = `${prev[cur.name]},${cur.version}`;
+        } else {
+          prev[cur.name] = cur.version;
+        }
+        return prev;
+      }, {} as Record<string, string>),
+  ).map((_) => ({ name: _[0], version: _[1] }));
 
 const nextCommitSha = Deno.env.get("GITHUB_SHA")!;
 console.log("nextCommitSha", nextCommitSha);
