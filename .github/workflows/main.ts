@@ -16,7 +16,7 @@ $.log(`Latest Fedora: ${latestFedora}`);
 const latestDeno = z.object({ Tags: z.array(z.string()) })
   .parse(await $`skopeo list-tags docker://docker.io/denoland/deno`.json())
   .Tags.filter((_) => _.match(/^bin-\d+\.\d+\.\d+$/))
-  .reverse()[0];
+  .reverse()[0].replace("bin-", "");
 
 $.log(`Latest Deno: ${latestDeno}`);
 
@@ -110,6 +110,10 @@ $.log(`Publishing...`);
 await publish(outdent`
   # Packages
   ${diff.added.length > 0 ? `## Added\n${diff.added.map(({ name, version }) => `- ${name}: ${version}\n`)}` : ""}
-  ${diff.updated.length > 0 ? `## Updated\n${diff.updated.map(({ name, oldV, newV }) => `- ${name}: ${oldV} => ${newV}\n`)}` : ""}
+  ${
+  diff.updated.length > 0
+    ? `## Updated\n${diff.updated.map(({ name, oldV, newV }) => `- ${name}: ${oldV} => ${newV}\n`)}`
+    : ""
+}
   ${diff.deleted.length > 0 ? `## Deleted\n${diff.deleted.map(({ name, version }) => `- ${name}: ${version}\n`)}` : ""}
 `);
