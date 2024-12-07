@@ -25,6 +25,9 @@ jobs:
         with:
           version: v1.17.0
 
+      - name: ⚙️ Enable containerd image store
+        uses: depot/use-containerd-snapshotter-action@v1
+
       - name: 📦 Build Rootfs
         run: deno run -A ./.github/workflows/main.ts
         env:
