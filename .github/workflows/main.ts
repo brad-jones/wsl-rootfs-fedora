@@ -66,9 +66,7 @@ const filterPackages = (sbom: z.infer<typeof sbomSchema>) =>
   ).map((_) => ({ name: _[0], version: _[1] }));
 
 const nextCommitSha = Deno.env.get("GITHUB_SHA")!;
-console.log("nextCommitSha", nextCommitSha);
 const nextSbom = filterPackages(sbomSchema.parse(JSON.parse(await Deno.readTextFile("./dist/sbom.spdx.json"))));
-console.log("nextSbom", nextSbom);
 
 let currentCommitSha: string | undefined = undefined;
 let currentSbomUrl: string | undefined | false = undefined;
@@ -90,12 +88,11 @@ if (currentSbomUrl === undefined) {
   ).object.sha;
 }
 
-console.log("currentCommitSha", currentCommitSha);
-console.log("currentSbomUrl", currentSbomUrl);
-
 const publish = async (notes: string) => {
-  const releaseTitle = `Fedora ${latestFedora} - ${dayjs.utc().format("YYYYMMDD")}`;
-  const releaseTag = `${latestFedora}-${dayjs.utc().format("YYYYMMDD")}`;
+  const releaseTitle = `Fedora ${latestFedora} - ${dayjs.utc().format("YYYYMMDD")} (sha: -${
+    nextCommitSha.substring(0, 8)
+  })`;
+  const releaseTag = `${latestFedora}-${dayjs.utc().format("YYYYMMDD")}-${nextCommitSha.substring(0, 8)}`;
   const releaseNotesFile = "./dist/notes.md";
   await Deno.writeTextFile(releaseNotesFile, notes);
 
@@ -125,7 +122,6 @@ if (!currentSbomUrl) {
 }
 
 const currentSbom = filterPackages(sbomSchema.parse(await ky.get(currentSbomUrl).json()));
-console.log("currentSbom", currentSbom);
 
 const diff = {
   added: nextSbom.filter((next) => currentSbom.find((current) => current.name === next.name) === undefined),
@@ -138,10 +134,6 @@ const diff = {
     })),
   deleted: currentSbom.filter((current) => nextSbom.find((next) => next.name === current.name) === undefined),
 };
-
-console.log("diff", diff);
-console.log("next", nextSbom.filter((_) => _.name === "gpg-pubkey"));
-console.log("curent", currentSbom.filter((_) => _.name === "gpg-pubkey"));
 
 if (
   diff.added.length === 0 && diff.updated.length === 0 && diff.deleted.length === 0 &&
