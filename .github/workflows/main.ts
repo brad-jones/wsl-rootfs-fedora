@@ -61,16 +61,20 @@ const filterPackages = (sbom: z.infer<typeof sbomSchema>) =>
 
 const nextSbom = filterPackages(sbomSchema.parse(JSON.parse(await Deno.readTextFile("./dist/sbom.spdx.json"))));
 
-let currentSbomUrl: string | undefined = undefined;
+let currentSbomUrl: string | undefined | false = undefined;
 const result = await $`gh release view --json assets`.noThrow().captureCombined();
 if (result.code !== 0) {
   if (!result.combined.includes("release not found")) {
     throw new Error(`failed to get gh release`);
+  } else {
+    currentSbomUrl = false;
   }
 }
-currentSbomUrl = z.object({ assets: z.array(z.object({ url: z.string().url() })) })
-  .parse(JSON.parse(result.combined))
-  .assets.find((_) => _.url.endsWith("sbom.spdx.json"))?.url;
+if (currentSbomUrl === undefined) {
+  currentSbomUrl = z.object({ assets: z.array(z.object({ url: z.string().url() })) })
+    .parse(JSON.parse(result.combined))
+    .assets.find((_) => _.url.endsWith("sbom.spdx.json"))?.url;
+}
 
 const publish = async (notes: string) => {
   const releaseTitle = `Fedora ${latestFedora} - ${dayjs.utc().format("YYYYMMDD")}`;
