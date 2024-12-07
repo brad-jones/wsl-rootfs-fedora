@@ -1,6 +1,5 @@
 import { outdent } from "@cspotcode/outdent";
 import $ from "@david/dax";
-import * as fs from "@std/fs";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import ky from "ky";
@@ -10,7 +9,7 @@ dayjs.extend(utc);
 const latestFedora = z.object({ Tags: z.array(z.string()) })
   .parse(await $`skopeo list-tags docker://docker.io/fedora`.json())
   .Tags.filter((_) => _.match(/^\d+$/))
-  .reverse()[0];
+  .reverse()[1]; // NB: Fedora n = rawhide & n-1 = stable
 
 $.log(`Latest Fedora: ${latestFedora}`);
 
