@@ -62,14 +62,15 @@ const filterPackages = (sbom: z.infer<typeof sbomSchema>) =>
 const nextSbom = filterPackages(sbomSchema.parse(JSON.parse(await Deno.readTextFile("./dist/sbom.spdx.json"))));
 
 let currentSbomUrl: string | undefined = undefined;
-const result = await $`gh release view --json assets`.noThrow();
+const result = await $`gh release view --json assets`.noThrow().captureCombined();
 if (result.code !== 0) {
   if (!result.combined.includes("release not found")) {
     throw new Error(`failed to get gh release`);
   }
 }
 currentSbomUrl = z.object({ assets: z.array(z.object({ url: z.string().url() })) })
-  .parse(result.stdoutJson).assets.find((_) => _.url.endsWith("sbom.spdx.json"))?.url;
+  .parse(JSON.parse(result.combined))
+  .assets.find((_) => _.url.endsWith("sbom.spdx.json"))?.url;
 
 const publish = async (notes: string) => {
   const releaseTitle = `Fedora ${latestFedora} - ${dayjs.utc().format("YYYYMMDD")}`;
@@ -120,6 +121,10 @@ $.log(`Publishing...`);
 await publish(outdent`
   # Packages
   ${diff.added.length > 0 ? `## Added\n${diff.added.map(({ name, version }) => `- ${name}: ${version}\n`)}` : ""}
-  ${diff.updated.length > 0 ? `## Updated\n${diff.updated.map(({ name, oldV, newV }) => `- ${name}: ${oldV} => ${newV}\n`)}` : ""}
+  ${
+  diff.updated.length > 0
+    ? `## Updated\n${diff.updated.map(({ name, oldV, newV }) => `- ${name}: ${oldV} => ${newV}\n`)}`
+    : ""
+}
   ${diff.deleted.length > 0 ? `## Deleted\n${diff.deleted.map(({ name, version }) => `- ${name}: ${version}\n`)}` : ""}
 `);
