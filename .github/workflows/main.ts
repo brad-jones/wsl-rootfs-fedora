@@ -75,10 +75,9 @@ if (currentSbomUrl === undefined) {
     .parse(JSON.parse(result.combined));
 
   currentSbomUrl = release.assets.find((_) => _.url.endsWith("sbom.spdx.json"))?.url;
-  currentCommitSha =
-    z.object({ object: z.object({ sha: z.string() }) }).parse(
-      await $`gh api ${`repos/${Deno.env.get("GITHUB_REPOSITORY")!}/git/ref/tags/${release.tagName}`}`.json(),
-    ).object.sha;
+  currentCommitSha = z.object({ object: z.object({ sha: z.string() }) }).parse(
+    await $`gh api ${`repos/${Deno.env.get("GITHUB_REPOSITORY")!}/git/ref/tags/${release.tagName}`}`.json(),
+  ).object.sha;
 }
 
 console.log("currentCommitSha", currentCommitSha);
@@ -131,8 +130,13 @@ const diff = {
 };
 
 console.log("diff", diff);
+console.log("next", nextSbom.filter((_) => _.name === "gpg-pubkey"));
+console.log("curent", currentSbom.filter((_) => _.name === "gpg-pubkey"));
 
-if (diff.added.length === 0 && diff.updated.length === 0 && diff.deleted.length === 0 && currentCommitSha === nextCommitSha) {
+if (
+  diff.added.length === 0 && diff.updated.length === 0 && diff.deleted.length === 0 &&
+  currentCommitSha === nextCommitSha
+) {
   $.log(`No difference between the latest release & this new build, finish up...`);
   await Deno.remove("./dist", { recursive: true });
   Deno.exit(0);
@@ -140,9 +144,23 @@ if (diff.added.length === 0 && diff.updated.length === 0 && diff.deleted.length 
 
 $.log(`Publishing...`);
 await publish(outdent`
-  **Build Changes:** ${currentCommitSha !== nextCommitSha ? `<https://github.com/${Deno.env.get("GITHUB_REPOSITORY")!}/compare/${currentCommitSha}...${nextCommitSha}` : "n/a"}
+  **Build Changes:** ${
+  currentCommitSha !== nextCommitSha
+    ? `<https://github.com/${Deno.env.get("GITHUB_REPOSITORY")!}/compare/${currentCommitSha}...${nextCommitSha}`
+    : "n/a"
+}
   ## Packages
-  ${diff.added.length > 0 ? `### Added\n${diff.added.map(({ name, version }) => `- ${name}: ${version}`).join("\n")}` : ""}
-  ${diff.updated.length > 0 ? `### Updated\n${diff.updated.map(({ name, oldV, newV }) => `- ${name}: ${oldV} => ${newV}`).join("\n")}` : ""}
-  ${diff.deleted.length > 0 ? `### Deleted\n${diff.deleted.map(({ name, version }) => `- ${name}: ${version}`).join("\n")}` : ""}
+  ${
+  diff.added.length > 0 ? `### Added\n${diff.added.map(({ name, version }) => `- ${name}: ${version}`).join("\n")}` : ""
+}
+  ${
+  diff.updated.length > 0
+    ? `### Updated\n${diff.updated.map(({ name, oldV, newV }) => `- ${name}: ${oldV} => ${newV}`).join("\n")}`
+    : ""
+}
+  ${
+  diff.deleted.length > 0
+    ? `### Deleted\n${diff.deleted.map(({ name, version }) => `- ${name}: ${version}`).join("\n")}`
+    : ""
+}
 `);
