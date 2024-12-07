@@ -42,12 +42,8 @@ $.log(`Compressing rootfs...`);
 await $`gzip ./dist/${rootfsFileName}`;
 rootfsFileName = `${rootfsFileName}.gz`;
 
-//if (!await fs.exists(`./dist/${rootfsFileName}`) || (await Deno.stat(`./dist/${rootfsFileName}`)).size === 0) {
-//  Deno.exit(-1);
-//}
-
 $.log(`Comparing sbom to last sbom...`);
-await $`tar -xf ./dist/${rootfsFileName} provenance.json sbom.spdx.json`;
+await $`tar -xf ${rootfsFileName} provenance.json sbom.spdx.json`.cwd("./dist");
 
 await $`ls -hal ./dist`;
 
