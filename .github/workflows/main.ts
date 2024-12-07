@@ -89,7 +89,7 @@ if (currentSbomUrl === undefined) {
 }
 
 const publish = async (notes: string) => {
-  const releaseTitle = `Fedora ${latestFedora} - ${dayjs.utc().format("YYYYMMDD")} (sha: -${
+  const releaseTitle = `Fedora ${latestFedora} - ${dayjs.utc().format("YYYYMMDD")} (sha: ${
     nextCommitSha.substring(0, 8)
   })`;
   const releaseTag = `${latestFedora}-${dayjs.utc().format("YYYYMMDD")}-${nextCommitSha.substring(0, 8)}`;
@@ -139,19 +139,26 @@ if (
   diff.added.length === 0 && diff.updated.length === 0 && diff.deleted.length === 0 &&
   currentCommitSha === nextCommitSha
 ) {
-  $.log(`No difference between the latest release & this new build, finish up...`);
+  $.log(`No difference between the latest release & this new build, finishing up...`);
   await Deno.remove("./dist", { recursive: true });
   Deno.exit(0);
 }
 
-$.log(`Publishing...`);
+const publishReason = currentCommitSha !== nextCommitSha ? "a new commit" : "sbom package differences";
+$.log(`Publishing because of ${publishReason}...`);
+
 await publish(outdent`
   **Build Changes:** ${
   currentCommitSha !== nextCommitSha
-    ? `<https://github.com/${Deno.env.get("GITHUB_REPOSITORY")!}/compare/${currentCommitSha}...${nextCommitSha}`
+    ? `https://github.com/${Deno.env.get("GITHUB_REPOSITORY")!}/compare/${currentCommitSha}...${nextCommitSha}`
     : "n/a"
 }
   ## Packages
+  ${
+  diff.added.length === 0 && diff.updated.length === 0 && diff.deleted.length === 0
+    ? "No changes to installed packages."
+    : ""
+}
   ${
   diff.added.length > 0 ? `### Added\n${diff.added.map(({ name, version }) => `- ${name}: ${version}`).join("\n")}` : ""
 }
