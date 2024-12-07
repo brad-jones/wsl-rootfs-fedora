@@ -33,7 +33,7 @@ const rootfsFileName = `wsl-rootfs-fedora_${latestFedora}.tar.gz`;
 await $`docker buildx b
   --sbom=true --provenance=true
   --build-arg ${`FEDORA_VERSION=${latestFedora}`}
-  --build-arg ${`DENO_VERSION=${latestDeno}`}
+  --build-arg ${`DENO_VERSION=-${latestDeno}`}
   --build-arg ${`HANSEL_VERSION=${latestHansel}`}
   --output type=tar ./src | gzip >./dist/${rootfsFileName}
 `;
