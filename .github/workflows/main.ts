@@ -32,7 +32,7 @@ $.log(`Building rootfs...`);
 await Deno.mkdir("dist");
 let rootfsFileName = `wsl-rootfs-fedora_${latestFedora}.tar`;
 await $`docker buildx b
-  --sbom --provenance
+  --sbom=true --provenance=true
   --build-arg ${`FEDORA_VERSION=${latestFedora}`}
   --build-arg ${`DENO_VERSION=-${latestDeno}`}
   --build-arg ${`HANSEL_VERSION=${latestHansel}`}
