@@ -13,6 +13,7 @@
   "imports": {
     "@cspotcode/outdent": "jsr:@cspotcode/outdent@^0.8.0",
     "@david/dax": "jsr:@david/dax@^0.42.0",
+    "@std/fs": "jsr:@std/fs@^1.0.6",
     "dayjs": "npm:dayjs@^1.11.13",
     "ky": "npm:ky@^1.7.2",
     "zod": "npm:zod@^3.23.8"

@@ -1,5 +1,6 @@
 import { outdent } from "@cspotcode/outdent";
 import $ from "@david/dax";
+import * as fs from "@std/fs";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import ky from "ky";
@@ -37,6 +38,10 @@ await $`docker buildx b
   --build-arg ${`HANSEL_VERSION=${latestHansel}`}
   --output type=tar ./src | gzip >./dist/${rootfsFileName}
 `;
+
+if (!await fs.exists(`./dist/${rootfsFileName}`) || (await Deno.stat(`./dist/${rootfsFileName}`)).size === 0) {
+  Deno.exit(-1);
+}
 
 $.log(`Comparing sbom to last sbom...`);
 await $`tar -xf ./dist/${rootfsFileName} provenance.json sbom.spdx.json`;
