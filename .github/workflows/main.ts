@@ -28,20 +28,24 @@ const latestHansel = z.object({ Tags: z.array(z.string()) })
 
 $.log(`Latest Hansel: ${latestHansel}`);
 
-$.log(`Building...`);
+$.log(`Building rootfs...`);
 await Deno.mkdir("dist");
-const rootfsFileName = `wsl-rootfs-fedora_${latestFedora}.tar.gz`;
+let rootfsFileName = `wsl-rootfs-fedora_${latestFedora}.tar`;
 await $`docker buildx b
-  --sbom=true --provenance=true
+  --sbom --provenance
   --build-arg ${`FEDORA_VERSION=${latestFedora}`}
   --build-arg ${`DENO_VERSION=-${latestDeno}`}
   --build-arg ${`HANSEL_VERSION=${latestHansel}`}
-  --output type=tar ./src | gzip >./dist/${rootfsFileName}
+  --output type=tar,dest=./dist/${rootfsFileName} ./src
 `;
 
-if (!await fs.exists(`./dist/${rootfsFileName}`) || (await Deno.stat(`./dist/${rootfsFileName}`)).size === 0) {
-  Deno.exit(-1);
-}
+$.log(`Compressing rootfs...`);
+await $`gzip ./dist/${rootfsFileName}`;
+rootfsFileName = `${rootfsFileName}.gz`;
+
+//if (!await fs.exists(`./dist/${rootfsFileName}`) || (await Deno.stat(`./dist/${rootfsFileName}`)).size === 0) {
+//  Deno.exit(-1);
+//}
 
 $.log(`Comparing sbom to last sbom...`);
 await $`tar -xf ./dist/${rootfsFileName} provenance.json sbom.spdx.json`;
