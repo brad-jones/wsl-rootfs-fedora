@@ -49,6 +49,8 @@ rootfsFileName = `${rootfsFileName}.gz`;
 $.log(`Comparing sbom to last sbom...`);
 await $`tar -xf ./dist/${rootfsFileName} provenance.json sbom.spdx.json`;
 
+await $`ls -hal ./dist`;
+
 const sbomSchema = z.object({
   predicate: z.object({
     packages: z.array(z.object({
