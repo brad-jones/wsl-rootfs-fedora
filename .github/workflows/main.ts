@@ -38,10 +38,6 @@ await $`docker buildx b
   --output type=tar,dest=./dist/${rootfsFileName} ./src
 `;
 
-$.log(`Compressing rootfs...`);
-await $`gzip ./dist/${rootfsFileName}`;
-rootfsFileName = `${rootfsFileName}.gz`;
-
 $.log(`Comparing sbom to last sbom...`);
 await $`tar -xf ${rootfsFileName} provenance.json sbom.spdx.json`.cwd("./dist");
 
@@ -59,10 +55,14 @@ const filterPackages = (sbom: z.infer<typeof sbomSchema>) =>
     .filter((_) => typeof _.versionInfo === "string")
     .map((_) => ({ name: _.name, version: _.versionInfo! }));
 
+const nextCommitSha = Deno.env.get("GITHUB_SHA")!;
+console.log("nextCommitSha", nextCommitSha);
 const nextSbom = filterPackages(sbomSchema.parse(JSON.parse(await Deno.readTextFile("./dist/sbom.spdx.json"))));
+console.log("nextSbom", nextSbom);
 
+let currentCommitSha: string | undefined = undefined;
 let currentSbomUrl: string | undefined | false = undefined;
-const result = await $`gh release view --json assets`.noThrow().captureCombined();
+const result = await $`gh release view --json tagName,assets`.noThrow().captureCombined();
 if (result.code !== 0) {
   if (!result.combined.includes("release not found")) {
     throw new Error(`failed to get gh release`);
@@ -71,16 +71,29 @@ if (result.code !== 0) {
   }
 }
 if (currentSbomUrl === undefined) {
-  currentSbomUrl = z.object({ assets: z.array(z.object({ url: z.string().url() })) })
-    .parse(JSON.parse(result.combined))
-    .assets.find((_) => _.url.endsWith("sbom.spdx.json"))?.url;
+  const release = z.object({ tagName: z.string(), assets: z.array(z.object({ url: z.string().url() })) })
+    .parse(JSON.parse(result.combined));
+
+  currentSbomUrl = release.assets.find((_) => _.url.endsWith("sbom.spdx.json"))?.url;
+  currentCommitSha =
+    z.object({ object: z.object({ sha: z.string() }) }).parse(
+      await $`gh api ${`repos/${Deno.env.get("GITHUB_REPOSITORY")!}/git/ref/tags/${release.tagName}`}`.json(),
+    ).object.sha;
 }
+
+console.log("currentCommitSha", currentCommitSha);
+console.log("currentSbomUrl", currentSbomUrl);
 
 const publish = async (notes: string) => {
   const releaseTitle = `Fedora ${latestFedora} - ${dayjs.utc().format("YYYYMMDD")}`;
   const releaseTag = `${latestFedora}-${dayjs.utc().format("YYYYMMDD")}`;
   const releaseNotesFile = "./dist/notes.md";
   await Deno.writeTextFile(releaseNotesFile, notes);
+
+  $.log(`Compressing rootfs...`);
+  await $`gzip ./dist/${rootfsFileName}`;
+  rootfsFileName = `${rootfsFileName}.gz`;
+
   await $`gh release create ${releaseTag}
     --title ${releaseTitle}
     -F ${releaseNotesFile}
@@ -103,6 +116,7 @@ if (!currentSbomUrl) {
 }
 
 const currentSbom = filterPackages(sbomSchema.parse(await ky.get(currentSbomUrl).json()));
+console.log("currentSbom", currentSbom);
 
 const diff = {
   added: nextSbom.filter((next) => currentSbom.find((current) => current.name === next.name) === undefined),
@@ -116,7 +130,9 @@ const diff = {
   deleted: currentSbom.filter((current) => nextSbom.find((next) => next.name === current.name) === undefined),
 };
 
-if (diff.added.length === 0 && diff.updated.length === 0 && diff.deleted.length === 0) {
+console.log("diff", diff);
+
+if (diff.added.length === 0 && diff.updated.length === 0 && diff.deleted.length === 0 && currentCommitSha === nextCommitSha) {
   $.log(`No difference between the latest release & this new build, finish up...`);
   await Deno.remove("./dist", { recursive: true });
   Deno.exit(0);
@@ -124,6 +140,7 @@ if (diff.added.length === 0 && diff.updated.length === 0 && diff.deleted.length 
 
 $.log(`Publishing...`);
 await publish(outdent`
+  **Build Changes:** ${currentCommitSha !== nextCommitSha ? `<https://github.com/${Deno.env.get("GITHUB_REPOSITORY")!}/compare/${currentCommitSha}...${nextCommitSha}` : "n/a"}
   ## Packages
   ${diff.added.length > 0 ? `### Added\n${diff.added.map(({ name, version }) => `- ${name}: ${version}`).join("\n")}` : ""}
   ${diff.updated.length > 0 ? `### Updated\n${diff.updated.map(({ name, oldV, newV }) => `- ${name}: ${oldV} => ${newV}`).join("\n")}` : ""}
