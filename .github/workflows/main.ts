@@ -88,15 +88,16 @@ const publish = async (notes: string) => {
     ./dist/provenance.json
     ./dist/sbom.spdx.json
   `;
+  await Deno.remove("./dist/notes.md");
 };
 
 if (!currentSbomUrl) {
   $.log(`No previous release, publishing...`);
   await publish(outdent`
-    # Packages
+    ## Packages
 
-    ## Initial
-    ${nextSbom.map(({ name, version }) => `- ${name}: ${version}\n`)}
+    ### Initial
+    ${nextSbom.map(({ name, version }) => `- ${name}: ${version}`).join("\n")}
   `);
   Deno.exit(0);
 }
@@ -123,12 +124,8 @@ if (diff.added.length === 0 && diff.updated.length === 0 && diff.deleted.length 
 
 $.log(`Publishing...`);
 await publish(outdent`
-  # Packages
-  ${diff.added.length > 0 ? `## Added\n${diff.added.map(({ name, version }) => `- ${name}: ${version}\n`)}` : ""}
-  ${
-  diff.updated.length > 0
-    ? `## Updated\n${diff.updated.map(({ name, oldV, newV }) => `- ${name}: ${oldV} => ${newV}\n`)}`
-    : ""
-}
-  ${diff.deleted.length > 0 ? `## Deleted\n${diff.deleted.map(({ name, version }) => `- ${name}: ${version}\n`)}` : ""}
+  ## Packages
+  ${diff.added.length > 0 ? `### Added\n${diff.added.map(({ name, version }) => `- ${name}: ${version}`).join("\n")}` : ""}
+  ${diff.updated.length > 0 ? `### Updated\n${diff.updated.map(({ name, oldV, newV }) => `- ${name}: ${oldV} => ${newV}`).join("\n")}` : ""}
+  ${diff.deleted.length > 0 ? `### Deleted\n${diff.deleted.map(({ name, version }) => `- ${name}: ${version}`).join("\n")}` : ""}
 `);
