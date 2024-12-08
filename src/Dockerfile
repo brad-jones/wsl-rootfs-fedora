@@ -90,6 +90,7 @@ RUN dnf install -y gum
 COPY ./root/.bash_profile /root/.bash_profile
 COPY ./usr/local /usr/local
 RUN deno install -e /usr/local/firstboot/main.ts --lock /usr/local/firstboot/deno.lock
+RUN chmod +x /usr/local/bin/firstboot
 
 # Add some hints for sbom generation
 # see: https://github.com/Shopify/hansel
