@@ -26,6 +26,7 @@ RUN echo "install_weak_deps=false" >> /etc/dnf/dnf.conf
 
 # Install everything else
 RUN dnf install -y \
+  bash-completion \
   cracklib-dicts \
   dbus-daemon \
   dnf5-plugins \
