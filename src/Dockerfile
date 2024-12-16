@@ -35,6 +35,7 @@ RUN dnf install -y \
   gpg \
   iproute \
   iptables \
+  iputils \
   neovim \
   shadow-utils \
   sudo \
