@@ -64,6 +64,14 @@ COPY ./usr/lib/systemd/system/wslfree.service /usr/lib/systemd/system/wslfree.se
 RUN chmod +x /usr/bin/wslfree
 RUN systemctl enable wslfree.timer
 
+# Out modified nsswitch config will always let failed dns resolution fall
+# through to an actual dns lookup, instead of systemd-resolved caching a bad lookup.
+#
+# This is important when WSL swaps out the /etc/resolve.conf file automatically
+# when for example you connect to a VPN or your windows networking otherwise
+# changes in some way.
+COPY ./etc/nsswitch.conf /etc/nsswitch.conf
+
 # Allow rootless containers to ping & bind to low ports
 # see: https://rootlesscontaine.rs/getting-started/common/sysctl/
 COPY ./etc/sysctl.d/99-rootless.conf /etc/sysctl.d/99-rootless.conf
